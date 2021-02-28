@@ -123,7 +123,7 @@ Parse.Cloud.define("joinTalk", async(request) => {
       throw(`You are unable to join this session as you are already booked for ${duplicateSlotTalk.title} at ${duplicateSlotTalk.start}.`);
     }
     
-    const isJoinable = abracademyConditionCheck(myTalks, slug);
+    let isJoinable = abracademyConditionCheck(myTalks, slug);
     if (!isJoinable) {
       throw('Not joinable: Abracademy unavailable.');
     }
