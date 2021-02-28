@@ -134,7 +134,7 @@ Parse.Cloud.define("joinTalk", async(request) => {
     let talkWrapParseObject = await talkWrapQuery.first();
     if (!talkWrapParseObject) {
       const TalkWrap = Parse.Object.extend(TALK_WRAP_MODEL); 
-      const talkWrapName=`${title}-${start}-${end}`;
+      const talkWrapName=`${title}-${new Date(start).toISOString()}-${new Date(end).toISOString()}`;
       talkWrapParseObject = new TalkWrap();
       talkWrapParseObject.set('Name', talkWrapName);
       talkWrapParseObject.set('Talk', [talkParseObject]);
@@ -146,7 +146,7 @@ Parse.Cloud.define("joinTalk", async(request) => {
       if (alreadyBooked) {
         throw('Not joinable: Already Booked');
       }
-      isJoinable = (!isNaN(max_capacity) && (max_capacity ===0 || max_capacity > participantIds.length));
+      isJoinable = isNaN(max_capacity) || max_capacity ===0 || max_capacity > participantIds.length;
       if (!isJoinable) {
         throw('Not joinable: Out of capacity');
       }
