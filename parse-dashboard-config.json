@@ -1,0 +1,9 @@
+{
+  "apps": [
+    {
+      "serverURL": "http://localhost:1337/parse",
+      "appId": "9cc3a189974883546838c0139bdec93b",
+      "masterKey": "a4f8e03530bedd8ae9921af2717861cc"
+    }
+  ]
+}
