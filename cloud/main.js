@@ -1,4 +1,4 @@
-const {config, SITE, ROLE_ADMIN, ROLE_EDITOR, promisifyW, getAllObjects} = require('./common');
+const {config, hifiAudioConfig, SITE, ROLE_ADMIN, ROLE_EDITOR, promisifyW, getAllObjects} = require('./common');
 
 const {getPayPlan} = require('./payment');
 
@@ -949,9 +949,10 @@ Parse.Cloud.define("generateAudioJWT", async (request) => {
   const { userID, spaceID } = request.params;
   let hiFiJWT;
   try {
+    const SECRET_KEY_FOR_SIGNING = crypto.createSecretKey(Buffer.from(hifiAudioConfig.appSecret, "utf8"));
     hiFiJWT = await new SignJWT({
       "user_id": userID,
-      "app_id": config.hifiAudioConfig.appId,
+      "app_id": hifiAudioConfig.appId,
       "space_id": spaceID
     })
       .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
