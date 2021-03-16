@@ -50,6 +50,11 @@
     }
   },
 
+  "hifiAudioConfig": {
+    "appId": "64f78b54-4c17-432e-a94c-5855b5c8f682",
+    "appSecret": "bb31d560-6c7c-4dc7-b353-00454c2c514c"
+  },
+
   "extraConfig": {
     "dashboardActivated": true,
     "userEmail": "test",

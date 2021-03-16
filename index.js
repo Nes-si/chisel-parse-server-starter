@@ -15,6 +15,7 @@ const config = require('./config.json');
 
 let parseConfig = config.parseConfig;
 let StripeConfig = config.extraConfig.StripeConfig;
+let hifiAudioConfig = config.hifiAudioConfig;
 
 const PORT            = process.env.PORT          || parseConfig.port;
 const URL_SERVER      = process.env.SERVER_URL    || parseConfig.URLserver;
@@ -60,6 +61,7 @@ for (let p in cps) {
 module.exports.parseConfig = parseConfig;
 module.exports.URL_SITE = URL_SITE;
 module.exports.StripeConfig = StripeConfig;
+module.exports.hifiAudioConfig = hifiAudioConfig;
 
 
 const parseServer = new ParseServer(parseConfig);

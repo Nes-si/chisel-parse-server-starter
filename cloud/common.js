@@ -1,5 +1,6 @@
 const configs = require('../index.js');
 module.exports.config = configs.parseConfig;
+module.exports.hifiAudioConfig = configs.hifiAudioConfig;
 module.exports.SITE = configs['URL_SITE'];
 module.exports.StripeConfig = configs.StripeConfig;
 

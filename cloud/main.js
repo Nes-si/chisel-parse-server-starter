@@ -2,6 +2,8 @@ const {config, SITE, ROLE_ADMIN, ROLE_EDITOR, promisifyW, getAllObjects} = requi
 
 const {getPayPlan} = require('./payment');
 
+const { default: SignJWT } = require('jose/jwt/sign');
+const crypto = require('crypto');
 
 // Get Site nameId to generate Model names
 const getSiteNameId = async(siteId) => {
@@ -940,4 +942,24 @@ Parse.Cloud.define("checkPassword", request => {
   const username = request.user.get('username');
 
   return Parse.User.logIn(username, password);
+});
+
+
+Parse.Cloud.define("generateAudioJWT", async (request) => {
+  const { userID, spaceID } = request.params;
+  let hiFiJWT;
+  try {
+    hiFiJWT = await new SignJWT({
+      "user_id": userID,
+      "app_id": config.hifiAudioConfig.appId,
+      "space_id": spaceID
+    })
+      .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+      .sign(SECRET_KEY_FOR_SIGNING);
+
+    return hiFiJWT;
+  } catch (error) {
+      console.error(`Couldn't create JWT! Error:\n${error}`);
+      return;
+  }
 });

@@ -18,7 +18,9 @@
   },
   "dependencies": {
     "@nessi/parse-server": "^4.5.2",
+    "crypto": "^1.0.1",
     "express": "^4.17.1",
+    "jose": "^3.9.0",
     "parse": "^2.19.0",
     "parse-dashboard": "^2.1.0",
     "parse-server-mailgun": "^2.4.15",
