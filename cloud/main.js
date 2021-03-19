@@ -945,15 +945,73 @@ Parse.Cloud.define("checkPassword", request => {
 });
 
 
+
+
+/* -------------- Hi Fi Spatial Audio related ------------------- */
+const generateSpace = async (name) => {
+  try {
+    const response = await request({
+      url: `https://api.highfidelity.com/api/v1/spaces/create?token=${hifiAudioConfig.adminToken}&name=${name}`,
+      method: 'GET',
+      json: true,
+    });
+
+    if (!response || !response['space-id']) return null;
+    return response['space-id'];
+
+  } catch (e) {
+    console.error(e);
+    throw e;
+  }
+}
+
+// Hifi Spatial Audio Token
+// - Check Parse server for existing space token, return if found 
+// - generate one if doesn't exist,
+// - store newly generated one into Parse
+const findOrGenerateSpace = async (vulcanSpaceId, name) => {
+  const SPACE_MAPPING_MODEL = 'SpaceMapping';
+  try {
+    // Find the existing one first.
+    const spaceQuery = new Parse.Query(SPACE_MAPPING_MODEL);
+    spaceQuery.equalTo('vulcan_space_id', vulcanSpaceId);
+    const spaceRecord = await spaceQuery.first({useMasterKey: true});
+
+    if (!spaceRecord || !spaceRecord.get('space_token')) {
+      // When no existing record, generate one.
+      const spaceToken = await generateSpace(vulcanSpaceId, name);
+      if (spaceToken === null) throw 
+
+      // Store newly generated one into Parse Server
+      const SpaceMapping = Parse.Object.extend(SPACE_MAPPING_MODEL); 
+      const newSpaceMappingObject = new SpaceMapping();
+      newSpaceMappingObject.set('name', name);
+      newSpaceMappingObject.set('vulcan_space_id', vulcanSpaceId);
+      newSpaceMappingObject.set('spaceToken', spaceToken);
+      await newSpaceMappingObject.save();
+      return spaceToken;
+    }
+    return spaceRecord.get('space_token');
+  } catch (e) {
+
+  }
+}
+
+// Cloud function : End point for users for JWT token
+// - find or generate spce id first
+// - generate JWT with above space Id and given user ID
 Parse.Cloud.define("generateAudioJWT", async (request) => {
-  const { userID, spaceID } = request.params;
+  const { userID, vulcanSpaceId, name } = request.params;
   let hiFiJWT;
   try {
+    const spaceId = await findOrGenerateSpace(vulcanSpaceId, name);
+
+    // - generate JWT with above space Id and given user ID
     const SECRET_KEY_FOR_SIGNING = crypto.createSecretKey(Buffer.from(hifiAudioConfig.appSecret, "utf8"));
     hiFiJWT = await new SignJWT({
       "user_id": userID,
       "app_id": hifiAudioConfig.appId,
-      "space_id": spaceID
+      "space_id": spaceId
     })
       .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
       .sign(SECRET_KEY_FOR_SIGNING);
