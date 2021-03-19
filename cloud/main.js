@@ -4,6 +4,7 @@ const {getPayPlan} = require('./payment');
 
 const { default: SignJWT } = require('jose/jwt/sign');
 const crypto = require('crypto');
+const axios = require('axios');
 
 // Get Site nameId to generate Model names
 const getSiteNameId = async(siteId) => {
@@ -74,7 +75,7 @@ const getMyTalks = async (participant, siteId) => {
     }
     return myTalks;
   } catch (error) {
-    console.log("inside  myTalks function")
+    console.log('inside  myTalks function', error)
     throw error;
   }
 }
@@ -159,7 +160,7 @@ Parse.Cloud.define("joinTalk", async(request) => {
     const newMyTalks = await getMyTalks(participantId, siteId);
     return { status: 'success', myTalks: newMyTalks };
   } catch(error) {
-    console.log("inside joinTalk", error);
+    console.log('inside joinTalk', error);
     return { status: 'error', error };
   }
 });
@@ -948,17 +949,12 @@ Parse.Cloud.define("checkPassword", request => {
 
 
 /* -------------- Hi Fi Spatial Audio related ------------------- */
-const generateSpace = async (name) => {
+const generateSpace = async (vulcanSpaceId, name) => {
   try {
-    const response = await request({
-      url: `https://api.highfidelity.com/api/v1/spaces/create?token=${hifiAudioConfig.adminToken}&name=${name}`,
-      method: 'GET',
-      json: true,
-    });
-
-    if (!response || !response['space-id']) return null;
-    return response['space-id'];
-
+    const response = await axios.get(`https://api.highfidelity.com/api/v1/spaces/create?token=${hifiAudioConfig.adminToken}&name=${vulcanSpaceId}_${name}`);
+    if (!response.data || !response.data['space-id']) return null;
+    return response.data['space-id'];
+    
   } catch (e) {
     console.error(e);
     throw e;
@@ -980,20 +976,20 @@ const findOrGenerateSpace = async (vulcanSpaceId, name) => {
     if (!spaceRecord || !spaceRecord.get('space_token')) {
       // When no existing record, generate one.
       const spaceToken = await generateSpace(vulcanSpaceId, name);
-      if (spaceToken === null) throw 
+      if (spaceToken === null) throw 'No space token generated';
 
       // Store newly generated one into Parse Server
       const SpaceMapping = Parse.Object.extend(SPACE_MAPPING_MODEL); 
       const newSpaceMappingObject = new SpaceMapping();
       newSpaceMappingObject.set('name', name);
       newSpaceMappingObject.set('vulcan_space_id', vulcanSpaceId);
-      newSpaceMappingObject.set('spaceToken', spaceToken);
+      newSpaceMappingObject.set('space_token', spaceToken);
       await newSpaceMappingObject.save();
       return spaceToken;
     }
     return spaceRecord.get('space_token');
   } catch (e) {
-
+    console.log('error in findOrGenerateSpace', e);
   }
 }
 
