@@ -253,14 +253,14 @@ const checkRights = (user, obj) => {
 
   const pRead = acl.getPublicReadAccess();
   const pWrite = acl.getPublicWriteAccess();
-  
+
   return read && write || pRead && pWrite;
 };
 
 
 const getTableData = async (table) => {
   const endpoint = '/schemas/' + table;
-  
+
   try {
     const response = await Parse.Cloud.httpRequest({
       url: config.serverURL + endpoint,
@@ -273,18 +273,18 @@ const getTableData = async (table) => {
         'X-Parse-Master-Key': config.masterKey
       }
     });
-  
+
     if (response.status == 200)
       return response.data;
-    
+
   } catch (e) {}
-  
+
   return null;
 };
 
 const setTableData = async (table, data, method = 'POST') => {
   const endpoint = '/schemas/' + table;
-  
+
   const response = await Parse.Cloud.httpRequest({
     url: config.serverURL + endpoint,
     method,
@@ -297,14 +297,14 @@ const setTableData = async (table, data, method = 'POST') => {
     },
     body: JSON.stringify(data)
   });
-  
+
   if (response.status != 200)
     throw response.status;
 };
 
 const deleteTable = async (table) => {
   const endpoint = '/schemas/' + table;
-  
+
   const response = await Parse.Cloud.httpRequest({
     url: config.serverURL + endpoint,
     method: 'DELETE',
@@ -316,7 +316,7 @@ const deleteTable = async (table) => {
       'X-Parse-Master-Key': config.masterKey
     }
   });
-  
+
   if (response.status != 200)
     throw response.status;
 };
@@ -328,11 +328,11 @@ const deleteContentItem = async (user, tableName, itemId) => {
 
   if (!checkRights(user, item))
     throw "Access denied!";
-  
-  
+
+
   //removing MediaItem's belonging to content item
   const tableData = await getTableData(tableName);
-  
+
   for (let field in tableData.fields) {
     const val = tableData.fields[field];
     if (val.type == 'Pointer' && val.targetClass == 'MediaItem') {
@@ -342,17 +342,17 @@ const deleteContentItem = async (user, tableName, itemId) => {
         media.destroy({useMasterKey: true});
     }
   }
-  
-  
+
+
   //seeking draft version of content item
   const itemDraft = await new Parse.Query(tableName)
     .equalTo('t__owner', item)
     .first({useMasterKey: true});
-  
+
   if (itemDraft) {
     if (!checkRights(user, itemDraft))
       throw "Access denied!";
-  
+
     for (let field in tableData.fields) {
       const val = tableData.fields[field];
       if (val.type == 'Pointer' && val.targetClass == 'MediaItem') {
@@ -362,32 +362,32 @@ const deleteContentItem = async (user, tableName, itemId) => {
           media.destroy({useMasterKey: true});
       }
     }
-  
+
     await itemDraft.destroy({useMasterKey: true});
   }
-  
+
   await item.destroy({useMasterKey: true});
 };
 
 const deleteModel = async (user, model, deleteRef = true, deleteModel = true) => {
   if (!checkRights(user, model))
     throw "Access denied!";
-  
-  
+
+
   //removing model fields
   let fields = await getAllObjects(
     new Parse.Query('ModelField')
       .equalTo('model', model)
   );
-  
+
   let promises = [];
   for (let field of fields) {
     if (checkRights(user, field))
       promises.push(promisifyW(field.destroy({useMasterKey: true})));
   }
   await Promise.all(promises);
-  
-  
+
+
   //removing content items of model
   const tableName = model.get('tableName');
   const items = await getAllObjects(new Parse.Query(tableName));
@@ -400,8 +400,8 @@ const deleteModel = async (user, model, deleteRef = true, deleteModel = true) =>
   try {
     await deleteTable(tableName);
   } catch (e) {}
-  
-  
+
+
   //removing reference validation to model
   if (deleteRef) {
     const models = await getAllObjects(
@@ -414,25 +414,25 @@ const deleteModel = async (user, model, deleteRef = true, deleteModel = true) =>
         .notEqualTo('model', model)
         .equalTo('type', 'Reference')
     );
-  
+
     const promises = [];
     for (let field of fields) {
       const validations = field.get('validations');
       if (!validations || !validations.models || !validations.models.active || !validations.models.modelsList)
         continue;
-    
+
       const i = validations.models.modelsList.indexOf(model.get('nameId'));
       if (i == -1)
         continue;
-    
+
       validations.models.modelsList.splice(i, 1);
       field.set('validations', validations);
       promises.push(promisifyW(field.save(null, {useMasterKey: true})));
     }
     await Promise.all(promises);
   }
-  
-  
+
+
   //remove model
   if (deleteModel)
     await model.destroy({useMasterKey: true});
@@ -458,7 +458,7 @@ Parse.Cloud.define("deleteContentItem", async (request) => {
 Parse.Cloud.beforeDelete(`Model`, async request => {
   if (request.master)
     return;
-  
+
   try {
     return await deleteModel(request.user, request.object, true, false);
   } catch (error) {
@@ -469,30 +469,30 @@ Parse.Cloud.beforeDelete(`Model`, async request => {
 Parse.Cloud.beforeDelete(`Site`, async request => {
   if (request.master)
     return;
-  
+
   const site = request.object;
-  
+
   if (!checkRights(request.user, site))
     throw "Access denied!";
-  
+
   //removing site's models
   const models = await getAllObjects(
     new Parse.Query('Model')
       .equalTo('site', site));
-  
+
   let promises = [];
   for (let model of models)
     promises.push(promisifyW(
       deleteModel(request.user, model, false)
     ));
   await Promise.all(promises);
-  
-  
+
+
   //removing site's collaborations
   const collabs = await getAllObjects(
     new Parse.Query('Collaboration')
       .equalTo('site', site));
-  
+
   promises = [];
   for (let collab of collabs)
     promises.push(promisifyW(
@@ -506,71 +506,75 @@ const onCollaborationModify = async (collab, deleting = false) => {
   const site = collab.get('site');
   const user = collab.get('user');
   const role = collab.get('role');
-  
+
   if (!user)
     return;
-  
+
   await site.fetch({useMasterKey: true});
-  
+
   //ACL for collaborations
   const owner = site.get('owner');
   let collabACL = collab.getACL();
   if (!collabACL)
     collabACL = new Parse.ACL(owner);
-    
+
   //getting all site collabs
   const collabs = await getAllObjects(
     new Parse.Query('Collaboration')
       .equalTo('site', site)
       .notEqualTo('user', user));
-  
+
   for (let tempCollab of collabs) {
     if (tempCollab.id == collab.id)
       continue;
-    
+
     //set ACL for others collab
     let tempCollabACL = tempCollab.getACL();
     if (!tempCollabACL)
       tempCollabACL = new Parse.ACL(owner);
-    
+
     tempCollabACL.setReadAccess(user, !deleting && role == ROLE_ADMIN);
     tempCollabACL.setWriteAccess(user, !deleting && role == ROLE_ADMIN);
-    
+
     tempCollab.setACL(tempCollabACL);
     //!! uncontrolled async operation
     tempCollab.save(null, {useMasterKey: true});
-    
+
     //set ACL for current collab
     if (!deleting) {
       const tempRole = tempCollab.get('role');
       const tempUser = tempCollab.get('user');
+
+      if (!tempUser)
+        continue;
+
       collabACL.setReadAccess(tempUser, tempRole == ROLE_ADMIN);
       collabACL.setWriteAccess(tempUser, tempRole == ROLE_ADMIN);
     }
   }
-  
+
   collabACL.setReadAccess(user, true);
   collabACL.setWriteAccess(user, true);
   collab.setACL(collabACL);
-  
-  
+
+
   //ACL for site
   let siteACL = site.getACL();
   if (!siteACL)
     siteACL = new Parse.ACL(owner);
-  
+
   siteACL.setReadAccess(user, !deleting);
   siteACL.setWriteAccess(user, !deleting && role == ROLE_ADMIN);
   site.setACL(siteACL);
   //!! uncontrolled async operation
   site.save(null, {useMasterKey: true});
 
-  
+
   //ACL for media items
   const mediaItems = await getAllObjects(
     new Parse.Query('MediaItem')
       .equalTo('site', site));
-  
+
   for (let item of mediaItems) {
     let itemACL = item.getACL();
     if (!itemACL)
@@ -582,18 +586,18 @@ const onCollaborationModify = async (collab, deleting = false) => {
     //!! uncontrolled async operation
     item.save(null, {useMasterKey: true});
   }
-  
-  
+
+
   //ACL for models and content items
   const models = await getAllObjects(
     new Parse.Query('Model')
       .equalTo('site', site));
-      
+
   for (let model of models) {
     let modelACL = model.getACL();
     if (!modelACL)
       modelACL = new Parse.ACL(owner);
-    
+
     modelACL.setReadAccess(user, !deleting);
     modelACL.setWriteAccess(user, !deleting && role == ROLE_ADMIN);
     model.setACL(modelACL);
@@ -614,7 +618,7 @@ const onCollaborationModify = async (collab, deleting = false) => {
             'delete': {},
             'addField': {}
           };
-        
+
         if (!deleting) {
           CLP['get'][user.id] = true;
           CLP['find'][user.id] = true;
@@ -624,7 +628,7 @@ const onCollaborationModify = async (collab, deleting = false) => {
           if (CLP['find'].hasOwnProperty(user.id))
             delete CLP['find'][user.id];
         }
-        
+
         if (!deleting && (role == ROLE_ADMIN || role == ROLE_EDITOR)) {
           CLP['create'][user.id] = true;
           CLP['update'][user.id] = true;
@@ -637,25 +641,25 @@ const onCollaborationModify = async (collab, deleting = false) => {
           if (CLP['delete'].hasOwnProperty(user.id))
             delete CLP['delete'][user.id];
         }
-        
+
         if (!deleting && role == ROLE_ADMIN)
           CLP['addField'][user.id] = true;
         else if (CLP['addField'].hasOwnProperty(user.id))
           delete CLP['addField'][user.id];
-        
+
         //!! uncontrolled async operation
         const data = {"classLevelPermissions": CLP};
         setTableData(tableName, data)
           .catch(() => setTableData(tableName, data, 'PUT'));
       });
   }
-  
-  
+
+
   //ACL for fields
   const fields = await getAllObjects(
     new Parse.Query('ModelField')
       .containedIn('model', models));
-      
+
   for (let field of fields) {
     let fieldACL = field.getACL();
     if (!fieldACL)
@@ -673,22 +677,22 @@ const onCollaborationModify = async (collab, deleting = false) => {
 Parse.Cloud.beforeSave("Collaboration", async request => {
   if (request.master)
     return;
-  
+
   const collab = request.object;
   if (!checkRights(request.user, collab))
     throw "Access denied!";
-    
+
   return onCollaborationModify(collab);
 });
 
 Parse.Cloud.beforeDelete("Collaboration", async request => {
   if (request.master)
     return;
-  
+
   const collab = request.object;
   if (!checkRights(request.user, collab))
     throw "Access denied!";
-  
+
   return onCollaborationModify(collab, true);
 });
 
@@ -701,7 +705,7 @@ Parse.Cloud.beforeSave(Parse.User, request => {
 
 Parse.Cloud.afterSave(Parse.User, async request => {
   const user = request.object;
-  
+
   const collabs = await new Parse.Query('Collaboration')
     .equalTo('email', user.get('email'))
     .find({useMasterKey: true});
@@ -711,21 +715,21 @@ Parse.Cloud.afterSave(Parse.User, async request => {
   for (let collab of collabs) {
     if (collab.get('user'))
       continue;
-  
+
     collab.set('user', user);
     collab.set('email', '');
-  
+
     promises.push(collab.save(null, {useMasterKey: true}));
     promises.push(promisifyW(onCollaborationModify(collab)));
   }
-  
+
   await Promise.all(promises);
 });
 
 Parse.Cloud.beforeSave("Site", async request => {
   if (request.master)
     return;
-  
+
   //updating an existing site
   if (request.object.id)
     return true;
@@ -733,64 +737,67 @@ Parse.Cloud.beforeSave("Site", async request => {
   const user = request.user;
   if (!user)
     throw 'Must be signed in to save sites.';
-  
+
   const payPlan = await getPayPlan(user);
   if (!payPlan)
     return true;
-  
+
   const sitesLimit = payPlan.get('limitSites');
   if (!sitesLimit)
     return true;
-    
+
   const sites = await new Parse.Query('Site')
     .equalTo('owner', user)
     .count({useMasterKey: true});
-  
+
   if (sites >= sitesLimit)
     throw `The user has exhausted their sites' limit!`;
-    
+
   return true;
 });
 
 Parse.Cloud.beforeSave(`Model`, async request => {
   if (request.master)
     return;
-  
+
   const model = request.object;
   if (model.id)
     return;
-  
+
   const site = model.get('site');
   await site.fetch({useMasterKey: true});
-  
+
   //ACL for collaborations
   const owner = site.get('owner');
   const modelACL = new Parse.ACL(owner);
-  
+
   const collabs = await getAllObjects(
     new Parse.Query('Collaboration')
       .equalTo('site', site));
-  
+
   const admins = [owner.id];
   const writers = [owner.id];
   const all = [owner.id];
-  
+
   for (let collab of collabs) {
     const user = collab.get('user');
     const role = collab.get('role');
-    
+
+    if (!user)
+      continue;
+
     modelACL.setReadAccess(user, true);
     modelACL.setWriteAccess(user, role == ROLE_ADMIN);
-    
+
     if (role == ROLE_ADMIN)
       admins.push(user.id);
     if (role == ROLE_ADMIN || role == ROLE_EDITOR)
       writers.push(user.id);
     all.push(user.id);
   }
-  
+
   model.setACL(modelACL);
-  
+
   //set CLP for content table
   const CLP = {
     'get': {},
@@ -800,7 +807,7 @@ Parse.Cloud.beforeSave(`Model`, async request => {
     'delete': {},
     'addField': {}
   };
-  
+
   for (let user of all) {
     CLP['get'][user] = true;
     CLP['find'][user] = true;
@@ -813,7 +820,7 @@ Parse.Cloud.beforeSave(`Model`, async request => {
   for (let user of admins) {
     CLP['addField'][user] = true;
   }
-  
+
   const data = {"classLevelPermissions": CLP};
   await setTableData(model.get('tableName'), data);
 });
@@ -821,17 +828,17 @@ Parse.Cloud.beforeSave(`Model`, async request => {
 Parse.Cloud.beforeSave(`ModelField`, async request => {
   if (request.master)
     return;
-  
+
   const field = request.object;
   if (field.id)
     return;
-  
+
   const model = field.get('model');
   await model.fetch({useMasterKey: true});
 
   const site = model.get('site');
   await site.fetch({useMasterKey: true});
-  
+
   //ACL for collaborations
   const owner = site.get('owner');
   const fieldACL = new Parse.ACL(owner);
@@ -844,6 +851,9 @@ Parse.Cloud.beforeSave(`ModelField`, async request => {
     const user = collab.get('user');
     const role = collab.get('role');
 
+    if (!user)
+      continue;
+
     fieldACL.setReadAccess(user, true);
     fieldACL.setWriteAccess(user, role == ROLE_ADMIN);
   }
@@ -854,25 +864,28 @@ Parse.Cloud.beforeSave(`ModelField`, async request => {
 Parse.Cloud.beforeSave(`MediaItem`, async request => {
   if (request.master)
     return;
-  
+
   const item = request.object;
   if (item.id)
     return;
 
   const site = item.get('site');
   await site.fetch({useMasterKey: true});
-  
+
   //ACL for collaborations
   const owner = site.get('owner');
   const itemACL = new Parse.ACL(owner);
-  
+
   const collabs = await getAllObjects(
     new Parse.Query('Collaboration')
       .equalTo('site', site));
-    
+
   for (let collab of collabs) {
     const user = collab.get('user');
     const role = collab.get('role');
+
+    if (!user)
+      continue;
 
     itemACL.setReadAccess(user, true);
     itemACL.setWriteAccess(user, role == ROLE_ADMIN);
@@ -894,7 +907,7 @@ Parse.Cloud.define("onContentModify", async request => {
     url: URL,
     method: 'GET'
   });
-  
+
   if (response.status == 200)
     return response.data;
   else
@@ -904,13 +917,13 @@ Parse.Cloud.define("onContentModify", async request => {
 Parse.Cloud.define("inviteUser", async request => {
   if (!request.user)
     throw 'Must be signed in to call this Cloud Function.';
-  
+
   const {email, siteName} = request.params;
   if (!email || !siteName)
     throw 'Email or siteName is empty!';
 
   console.log(`Send invite to ${email} ${new Date()}`);
-  
+
   const {AppCache} = require('parse-server/lib/cache');
   const emailAdapter = AppCache.get(config.appId)['userController']['adapter'];
 
@@ -925,7 +938,7 @@ Parse.Cloud.define("inviteUser", async request => {
     });
     console.log(`Invite sent to ${email} ${new Date()}`);
     return "Invite email sent!";
-  
+
   } catch (error) {
     console.log(`Got an error in inviteUser: ${error}`);
     throw error;
