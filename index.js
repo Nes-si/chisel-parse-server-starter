@@ -3,11 +3,14 @@ const { default: ParseServer, ParseGraphQLServer } = require('@nessi/parse-serve
 const ParseDashboard = require('parse-dashboard');
 const Parse = require('parse/node');
 const request = require('request');
+require('dotenv').config();
+
 const { claimPoints } = require('./cloud/mural');
 
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
+const proxy = require('express-http-proxy');
 
 const packageJSON = require('./package.json');
 
@@ -16,6 +19,8 @@ const config = require('./config.json');
 let parseConfig = config.parseConfig;
 let StripeConfig = config.extraConfig.StripeConfig;
 let hifiAudioConfig = config.hifiAudioConfig;
+
+const unsplashApiKey = process.env.UNSPLASH_API_KEY || config.unsplashConfig.apiKey;
 
 const PORT            = process.env.PORT          || parseConfig.port;
 const URL_SERVER      = process.env.SERVER_URL    || parseConfig.URLserver;
@@ -62,6 +67,7 @@ module.exports.parseConfig = parseConfig;
 module.exports.URL_SITE = URL_SITE;
 module.exports.StripeConfig = StripeConfig;
 module.exports.hifiAudioConfig = hifiAudioConfig;
+module.exports.unsplashApiKey = unsplashApiKey;
 
 
 const parseServer = new ParseServer(parseConfig);
@@ -73,11 +79,23 @@ const app = new express();
 app.use('/parse', parseServer.app);
 parseGraphQLServer.applyGraphQL(app);
 
-app.use('/callback', function(req, res) {
-  console.log("----------------CALLBACK REQUEST---------------", req.query);
-  // http://localhost:1337/callback?code=2fa9409b-6dd5-44a7-b58a-9381c1f9351e&scopes=profile%3Aread&state=Alfred
-  res.send({status: 'OK'});
-})
+app.use('/search', proxy('https://API.unsplash.com', {
+    proxyReqPathResolver: function (req) {
+      //Photos URL segment
+      const photos = '/search/photos/';
+
+      //API key argument name and value
+      const client = '?client_id=';
+
+      //Split the path value when ? occour
+      //if URL is www.exampleHost.com/users/abcd/?h=x&w=y
+      //path will be /abcd/efg
+      var parts = req.url.split('?');
+      
+      return photos + client + unsplashApiKey + '&' + parts[1];
+    }
+  }));
+
 
 app.use('/claimPoints', async function(req, res) {
   const result = await claimPoints(req.query.code, req.query.participant, req.query.siteId);

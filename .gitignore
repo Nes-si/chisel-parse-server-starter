@@ -3,3 +3,4 @@ logs
 npm-debug.log
 .idea
 parse-dashboard-config.json
+.env

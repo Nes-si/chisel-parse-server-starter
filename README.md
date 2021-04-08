@@ -61,6 +61,7 @@ Main parameters with `process.env` aliases:
 | Parse application ID | appId | APP_ID |
 | Parse master key | masterKey | MASTER_KEY |
 
+
 In `emailAdapter` there are settings for email adapter. To using email features (users' verification) you should replace `fromAddress`, `domain` and `apiKey` parameters to yours (or even change the adapter if you don't use Mailgun).
 
 Also you can configure integrated Parse Dashboard (in `extraConfig` object in `config.js`):
@@ -70,3 +71,10 @@ Also you can configure integrated Parse Dashboard (in `extraConfig` object in `c
 | Dashboard enabled | dashboardActivated | DASHBOARD_ACTIVATED |
 | Email for dashboard | userEmail | USER_EMAIL |
 | Password for dashboard | userPassword | USER_PASSWORD |
+
+
+Additional, unrelated with Parse.com, configuration.
+
+| Parameter | config.json  | process.env  |
+| :---:   | :-: | :-: |
+| Unsplash Api Key | unsplashConfig.apiKey | UNSPLASH_API_KEY |

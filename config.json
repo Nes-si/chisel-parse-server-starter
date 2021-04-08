@@ -56,6 +56,10 @@
     "adminToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBfaWQiOiI2NGY3OGI1NC00YzE3LTQzMmUtYTk0Yy01ODU1YjVjOGY2ODIiLCJ1c2VyX2lkIjoiMSIsImFkbWluIjp0cnVlLCJkZXZlbG9wZXJfaWQiOiI4MDk5ZDZlZS04YmMyLTQwMzYtYWYzMS00N2JlYTJlMWIzMWIiLCJzdGFjayI6ImF1ZGlvbmV0LW1peGVyLWFwaS1hbHBoYS0wNCJ9.DCpOhJNeP_rrIAySUh_eqsr93wW6vnuh--C0ynCAqDI"
   },
 
+  "unsplashConfig": {
+    "apiKey": ""
+  },
+
   "extraConfig": {
     "dashboardActivated": true,
     "userEmail": "test",
