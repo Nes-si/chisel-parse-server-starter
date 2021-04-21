@@ -1,11 +1,11 @@
 {
   "parseConfig": {
     "appName": "Chisel",
-    "appId": "e13b6da91a2b9ff4e3adf80fdfd2285c",
-    "masterKey": "40db60e944869de4adfc2a05a1dad0aa",
+    "appId": "",
+    "masterKey": "",
 
     "port": 1337,
-    "URLserver": "https://dockerhost.forge-parse-server.c66.me:40063/parse",
+    "URLserver": "",
     "GraphQLURLserver": "http://localhost:1337/graphql",
     "URLdb": "mongodb://localhost:27017/parse",
     "URLsite": "http://localhost:9000",
