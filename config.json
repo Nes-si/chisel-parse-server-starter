@@ -51,9 +51,9 @@
   },
 
   "hifiAudioConfig": {
-    "appId": "64f78b54-4c17-432e-a94c-5855b5c8f682",
-    "appSecret": "bb31d560-6c7c-4dc7-b353-00454c2c514c",
-    "adminToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBfaWQiOiI2NGY3OGI1NC00YzE3LTQzMmUtYTk0Yy01ODU1YjVjOGY2ODIiLCJ1c2VyX2lkIjoiMSIsImFkbWluIjp0cnVlLCJkZXZlbG9wZXJfaWQiOiI4MDk5ZDZlZS04YmMyLTQwMzYtYWYzMS00N2JlYTJlMWIzMWIiLCJzdGFjayI6ImF1ZGlvbmV0LW1peGVyLWFwaS1hbHBoYS0wNCJ9.DCpOhJNeP_rrIAySUh_eqsr93wW6vnuh--C0ynCAqDI"
+    "appId": "",
+    "appSecret": "",
+    "adminToken": ""
   },
 
   "unsplashConfig": {

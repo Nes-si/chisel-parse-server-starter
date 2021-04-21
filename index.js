@@ -18,7 +18,11 @@ const config = require('./config.json');
 
 let parseConfig = config.parseConfig;
 let StripeConfig = config.extraConfig.StripeConfig;
-let hifiAudioConfig = config.hifiAudioConfig;
+let hifiAudioConfig = {
+  appId: process.env.HIFI_AUDIO_APP_ID || config.hifiAudioConfig.appId,
+  appSecret: process.env.HIFI_AUDIO_APP_SECRET || config.hifiAudioConfig.appSecret,
+  adminToken: process.env.HIFI_AUDIO_ADMIN_TOKEN || config.hifiAudioConfig.adminToken
+};
 
 const unsplashApiKey = process.env.UNSPLASH_API_KEY || config.unsplashConfig.apiKey;
 
