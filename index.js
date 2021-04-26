@@ -41,7 +41,6 @@ const DASH_USER_PASSWORD  = process.env.USER_PASS           || config.extraConfi
 
 const SITE_TEMPLATES      = process.env.SITE_TEMPLATES      || config.extraConfig.siteTemplates;
 
-const FORGE_SITE_TOKEN = process.env.FORGE_SITE_TOKEN;
 
 
 let emailOptions = parseConfig.emailAdapter.options;
@@ -102,14 +101,6 @@ app.use('/search', proxy('https://API.unsplash.com', {
     }
   }));
 
-app.use('/siteInfo', proxy('https://getforge.com', {
-  proxyReqPathResolver: function (req) {
-
-    const url = '/api/v2/settings/site_info?site_token=';
-    
-    return url + FORGE_SITE_TOKEN;
-  }
-}));
 
 
 app.use('/claimPoints', async function(req, res) {
