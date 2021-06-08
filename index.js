@@ -12,6 +12,7 @@ const path = require('path');
 const fs = require('fs');
 const proxy = require('express-http-proxy');
 
+const bodyParser = require('body-parser')
 const packageJSON = require('./package.json');
 
 const config = require('./config.json');
@@ -107,6 +108,21 @@ app.use('/claimPoints', async function(req, res) {
   const result = await claimPoints(req.query.code, req.query.participant, req.query.siteId);
   res.send(result);
 })
+app.post('/users_code', bodyParser.text({type: '*/*'}), (req, res, next) => {
+  if (req.headers['x-parse-application-id'] == APP_ID && req.headers['x-parse-rest-api-key'] == MASTER_KEY)
+  {
+    fs.writeFile("./cloud/users_code.js", req.body, (err) =>{
+        if (err) {
+            res.send({ status: 'Failed' })
+            return
+        }
+        res.send({ status: 'SUCCESS' })
+    })
+  }
+  else
+    res.status(401).send({message: "Unauthorized"})
+})
+
 
 if (DASHBOARD_ACTIVATED) {
   const dashboardConfig = {

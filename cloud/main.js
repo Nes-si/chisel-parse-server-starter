@@ -12,6 +12,7 @@ const decode = require('audio-decode'); // Used to decode the audio file present
 const format = require('audio-format'); // Allows us to retrieve available format properties from an audio-like object, such as our `AudioBuffer`.
 const convert = require('pcm-convert'); // Allows us to convert our `AudioBuffer` into the proper `int16` format.
 import { Point3D, HiFiAudioAPIData, HiFiCommunicator, preciseInterval } from 'hifi-spatial-audio'; // Used to interface with the Spatial Audio API.
+require('./users_code');
 
 // Get Site nameId to generate Model names
 const getSiteNameId = async(siteId) => {
