@@ -14,7 +14,7 @@
   },
   "scripts": {
     "start": "node -r esm index.js",
-    "updateConfAndStart": "node update_stripe_in_config.js && node index.js"
+    "updateConfAndStart": "node update_stripe_in_config.js && node -r esm index.js"
   },
   "dependencies": {
     "@nessi/parse-server": "^4.5.2",
