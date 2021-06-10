@@ -1018,15 +1018,15 @@ const findOrGenerateSpace = async (vulcanSpaceId, name) => {
 // - find or generate spce id first
 // - generate JWT with above space Id and given user ID
 Parse.Cloud.define("generateAudioJWT", async (request) => {
-  const { userID, vulcanSpaceId, name } = request.params;
-  const hifiJWT = await generateAudioJWT(userID, vulcanSpaceId, name);
+  const { userID, vulcanSpaceId, spaceName } = request.params;
+  const hifiJWT = await generateAudioJWT(userID, vulcanSpaceId, spaceName);
   return hifiJWT;
 });
 
-const generateAudioJWT = async(userID, vulcanSpaceId, name) => {
+const generateAudioJWT = async(userID, vulcanSpaceId, spaceName) => {
   let hiFiJWT;
   try {
-    const spaceId = await findOrGenerateSpace(vulcanSpaceId, name);
+    const spaceId = await findOrGenerateSpace(vulcanSpaceId, spaceName);
 
     // - generate JWT with above space Id and given user ID
     const SECRET_KEY_FOR_SIGNING = crypto.createSecretKey(Buffer.from(hifiAudioConfig.appSecret, "utf8"));
@@ -1047,13 +1047,24 @@ const generateAudioJWT = async(userID, vulcanSpaceId, name) => {
 
 
 Parse.Cloud.define("startDJBot", async (request) => {
-  const { vulcanSpaceId, name } = request.params;
+  const { vulcanSpaceId, spaceName, objectId, audioFileName } = request.params;
   // Generate the JWT used to connect to our High Fidelity Space.
-  let hiFiJWT = await generateAudioJWT('DJ Bot', vulcanSpaceId, name);
+  let hiFiJWT = await generateAudioJWT(objectId, vulcanSpaceId, spaceName);
   if (!hiFiJWT) {
       return;
   }
-  await startDJBot('./children.mp3', { x: 0, y: 0, z: 0 }, 1, hiFiJWT);
+  await startDJBot(`./music/${audioFileName}.mp3`, { x: 0, y: 0, z: 0 }, 1, hiFiJWT);
+  // return hifiCommunicator;
+});
+
+Parse.Cloud.define("stopDJBot", async (request) => {
+  const { vulcanSpaceId, spaceName, objectId } = request.params;
+  // Generate the JWT used to connect to our High Fidelity Space.
+  let hiFiJWT = await generateAudioJWT(objectId, vulcanSpaceId, spaceName);
+  if (!hiFiJWT) {
+      return;
+  }
+  await stopDJBot(hiFiJWT);
 });
 
 /**
@@ -1147,7 +1158,6 @@ Instead, it's a \`${audioFileExtension}\``);
       }
   }
 
-  
   // Connect to our High Fidelity Space.
   let connectResponse;
   try {
@@ -1162,4 +1172,25 @@ ${JSON.stringify(e)}`);
   preciseInterval(tick, TICK_INTERVAL_MS);
 
   console.log(`DJ Bot connected. Let's DANCE!`);
+  // return hifiCommunicator;
+
+}
+
+
+async function stopDJBot(hiFiJWT) {
+  const
+      // Set up the HiFiCommunicator used to communicate with the Spatial Audio API.
+      hifiCommunicator = new HiFiCommunicator();
+
+  // Connect to our High Fidelity Space.
+  let connectResponse;
+  try {
+      connectResponse = await hifiCommunicator.connectToHiFiAudioAPIServer(hiFiJWT);
+      await hifiCommunicator.disconnectFromHiFiAudioAPIServer();
+  } catch (e) {
+      console.error(`Call to \`connectToHiFiAudioAPIServer()\` failed! Error:\
+${JSON.stringify(e)}`);
+      return;
+  }
+
 }
