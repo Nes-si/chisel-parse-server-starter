@@ -1046,25 +1046,25 @@ const generateAudioJWT = async(userID, vulcanSpaceId, spaceName) => {
 }
 
 
-Parse.Cloud.define("startDJBot", async (request) => {
-  const { vulcanSpaceId, spaceName, objectId, audioFileName } = request.params;
+Parse.Cloud.define("startAudioBox", async (request) => {
+  const { vulcanSpaceId, spaceName, objectId, audioFileName, hiFiGain, x, y } = request.params;
   // Generate the JWT used to connect to our High Fidelity Space.
   let hiFiJWT = await generateAudioJWT(objectId, vulcanSpaceId, spaceName);
   if (!hiFiJWT) {
       return;
   }
-  await startDJBot(`./music/${audioFileName}.mp3`, { x: 0, y: 0, z: 0 }, 1, hiFiJWT);
+  await startAudioBox(`./music/${audioFileName}.mp3`, { x, y, z: 0 }, hiFiGain, hiFiJWT);
   // return hifiCommunicator;
 });
 
-Parse.Cloud.define("stopDJBot", async (request) => {
+Parse.Cloud.define("stopAudioBox", async (request) => {
   const { vulcanSpaceId, spaceName, objectId } = request.params;
   // Generate the JWT used to connect to our High Fidelity Space.
   let hiFiJWT = await generateAudioJWT(objectId, vulcanSpaceId, spaceName);
   if (!hiFiJWT) {
       return;
   }
-  await stopDJBot(hiFiJWT);
+  await stopAudioBox(hiFiJWT);
 });
 
 /**
@@ -1074,7 +1074,7 @@ Parse.Cloud.define("stopDJBot", async (request) => {
  * @param {object} position - The {x, y, z} point at which to spatialize the audio.
  * @param {number} hiFiGain - Set above 1 to boost the volume of the bot, or set below 1 to attenuate the volume of the bot.
  */
- async function startDJBot(audioPath, position, hiFiGain, hiFiJWT) {
+ async function startAudioBox(audioPath, position, hiFiGain, hiFiJWT) {
   // Make sure we've been passed an `audioPath`...
   if (!audioPath) {
       console.error(`Audio file path not specified! Please specify an audio path with "--audio "`);
@@ -1177,7 +1177,7 @@ ${JSON.stringify(e)}`);
 }
 
 
-async function stopDJBot(hiFiJWT) {
+async function stopAudioBox(hiFiJWT) {
   const
       // Set up the HiFiCommunicator used to communicate with the Spatial Audio API.
       hifiCommunicator = new HiFiCommunicator();
