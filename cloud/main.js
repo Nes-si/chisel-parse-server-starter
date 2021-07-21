@@ -973,7 +973,8 @@ Parse.Cloud.define("checkPassword", request => {
 const generateSpace = async (vulcanSpaceId, name) => {
   try {
     const response = await axios.get(`https://api.highfidelity.com/api/v1/spaces/create?token=${hifiAudioConfig.adminToken}&name=${vulcanSpaceId}_${name}`);
-    if (!response.data || !response.data['space-id']) return null;
+    if (!response.data || !response.data['space-id'])
+      return null;
     return response.data['space-id'];
     
   } catch (e) {
@@ -997,7 +998,8 @@ const findOrGenerateSpace = async (vulcanSpaceId, name) => {
     if (!spaceRecord || !spaceRecord.get('space_token')) {
       // When no existing record, generate one.
       const spaceToken = await generateSpace(vulcanSpaceId, name);
-      if (spaceToken === null) throw 'No space token generated';
+      if (spaceToken === null)
+        throw 'No space token generated';
 
       // Store newly generated one into Parse Server
       const SpaceMapping = Parse.Object.extend(SPACE_MAPPING_MODEL); 
@@ -1051,7 +1053,7 @@ Parse.Cloud.define("startAudioBox", async (request) => {
   // Generate the JWT used to connect to our High Fidelity Space.
   let hiFiJWT = await generateAudioJWT(objectId, vulcanSpaceId, spaceName);
   if (!hiFiJWT) {
-      return;
+    return;
   }
   await startAudioBox(`./music/${audioFileName}.mp3`, { x, y, z: 0 }, hiFiGain, hiFiJWT);
   // return hifiCommunicator;
@@ -1062,7 +1064,7 @@ Parse.Cloud.define("stopAudioBox", async (request) => {
   // Generate the JWT used to connect to our High Fidelity Space.
   let hiFiJWT = await generateAudioJWT(objectId, vulcanSpaceId, spaceName);
   if (!hiFiJWT) {
-      return;
+    return;
   }
   await stopAudioBox(hiFiJWT);
 });
@@ -1074,65 +1076,71 @@ Parse.Cloud.define("stopAudioBox", async (request) => {
  * @param {object} position - The {x, y, z} point at which to spatialize the audio.
  * @param {number} hiFiGain - Set above 1 to boost the volume of the bot, or set below 1 to attenuate the volume of the bot.
  */
- async function startAudioBox(audioPath, position, hiFiGain, hiFiJWT) {
+async function startAudioBox(audioPath, position, hiFiGain, hiFiJWT) {
   // Make sure we've been passed an `audioPath`...
   if (!audioPath) {
-      console.error(`Audio file path not specified! Please specify an audio path with "--audio "`);
-      return;
+    console.error(`Audio file path not specified! Please specify an audio path with "--audio "`);
+    return;
   }
 
   // Make sure the `audioPath` we've been passed is actually a file that exists on the filesystem...
   if (!fs.statSync(audioPath).isFile()) {
-      console.error(`Specified path "${audioPath}" is not a file!`);
-      return;
+    console.error(`Specified path "${audioPath}" is not a file!`);
+    return;
   }
 
   // Make sure that the file at `audioPath` is a `.mp3` or a `.wav` file.
   let audioFileExtension = path.extname(audioPath).toLowerCase();
   if (!(audioFileExtension === ".mp3" || audioFileExtension === ".wav")) {
-      console.error(`Specified audio file must be a \`.mp3\` or a \`.wav\`!\
+    console.error(`Specified audio file must be a \`.mp3\` or a \`.wav\`!\
 Instead, it's a \`${audioFileExtension}\``);
-      return;
+    return;
   }
 
   // Read the audio file from our local filesystem into a file buffer.
   const fileBuffer = fs.readFileSync(audioPath),
-      // Decode the audio file buffer into an AudioBuffer object.
-      audioBuffer = await decode(fileBuffer),
-      // Obtain various necessary pieces of information about the audio file.
-      { numberOfChannels, sampleRate, length, duration } = audioBuffer,
-      // Get the correct format of the `audioBuffer`.
-      parsed = format.detect(audioBuffer),
-      // Convert the parsed `audioBuffer` into the proper format.
-      convertedAudioBuffer = convert(audioBuffer, parsed, 'int16'),
-      // Define the number of bits per sample encoded into the original audio file. `16` is a commonly-used number. The DJ Bot may malfunction
-      // if the audio file specified is encoded using a different number of bits per sample.
-      BITS_PER_SAMPLE = 16,
-      // Define the interval at which we want to fill the sample data being streamed into the `MediaStream` sent up to the Server.
-      // `wrtc` expects this to be 10ms.
-      TICK_INTERVAL_MS = 10,
-      // There are 1000 milliseconds per second :)
-      MS_PER_SEC = 1000,
-      // The number of times we fill up the audio buffer per second.
-      TICKS_PER_SECOND = MS_PER_SEC / TICK_INTERVAL_MS,
-      // The number of audio samples present in the `MediaStream` audio buffer per tick.
-      SAMPLES_PER_TICK = sampleRate / TICKS_PER_SECOND,
-      // Contains the audio sample data present in the `MediaStream` audio buffer sent to the Server.
-      currentSamples = new Int16Array(numberOfChannels * SAMPLES_PER_TICK),
-      // Contains all of the data necessary to pass to our `RTCAudioSource()`, which is sent to the Server.
-      currentAudioData = { samples: currentSamples, sampleRate, bitsPerSample: BITS_PER_SAMPLE, channelCount: numberOfChannels, numberOfFrames: SAMPLES_PER_TICK },
-      // The `MediaStream` sent to the server consists of an "Audio Source" and, within that Source, a single "Audio Track".
-      source = new RTCAudioSource(),
-      track = source.createTrack(),
-      // This is the final `MediaStream` sent to the server. The data within that `MediaStream` will be updated on an interval.
-      inputAudioMediaStream = new MediaStream([track]),
-      // Define the initial HiFi Audio API Data used when connecting to the Spatial Audio API.
-      initialHiFiAudioAPIData = new HiFiAudioAPIData({
-          position: new Point3D(position),
-          hiFiGain: hiFiGain
-      }),
-      // Set up the HiFiCommunicator used to communicate with the Spatial Audio API.
-      hifiCommunicator = new HiFiCommunicator({ initialHiFiAudioAPIData });
+    // Decode the audio file buffer into an AudioBuffer object.
+    audioBuffer = await decode(fileBuffer),
+    // Obtain various necessary pieces of information about the audio file.
+    { numberOfChannels, sampleRate, length, duration } = audioBuffer,
+    // Get the correct format of the `audioBuffer`.
+    parsed = format.detect(audioBuffer),
+    // Convert the parsed `audioBuffer` into the proper format.
+    convertedAudioBuffer = convert(audioBuffer, parsed, 'int16'),
+    // Define the number of bits per sample encoded into the original audio file. `16` is a commonly-used number. The DJ Bot may malfunction
+    // if the audio file specified is encoded using a different number of bits per sample.
+    BITS_PER_SAMPLE = 16,
+    // Define the interval at which we want to fill the sample data being streamed into the `MediaStream` sent up to the Server.
+    // `wrtc` expects this to be 10ms.
+    TICK_INTERVAL_MS = 10,
+    // There are 1000 milliseconds per second :)
+    MS_PER_SEC = 1000,
+    // The number of times we fill up the audio buffer per second.
+    TICKS_PER_SECOND = MS_PER_SEC / TICK_INTERVAL_MS,
+    // The number of audio samples present in the `MediaStream` audio buffer per tick.
+    SAMPLES_PER_TICK = sampleRate / TICKS_PER_SECOND,
+    // Contains the audio sample data present in the `MediaStream` audio buffer sent to the Server.
+    currentSamples = new Int16Array(numberOfChannels * SAMPLES_PER_TICK),
+    // Contains all of the data necessary to pass to our `RTCAudioSource()`, which is sent to the Server.
+    currentAudioData = {
+      samples: currentSamples,
+      sampleRate,
+      bitsPerSample: BITS_PER_SAMPLE,
+      channelCount: numberOfChannels,
+      numberOfFrames: SAMPLES_PER_TICK
+    },
+    // The `MediaStream` sent to the server consists of an "Audio Source" and, within that Source, a single "Audio Track".
+    source = new RTCAudioSource(),
+    track = source.createTrack(),
+    // This is the final `MediaStream` sent to the server. The data within that `MediaStream` will be updated on an interval.
+    inputAudioMediaStream = new MediaStream([track]),
+    // Define the initial HiFi Audio API Data used when connecting to the Spatial Audio API.
+    initialHiFiAudioAPIData = new HiFiAudioAPIData({
+      position: new Point3D(position),
+      hiFiGain: hiFiGain
+    }),
+    // Set up the HiFiCommunicator used to communicate with the Spatial Audio API.
+    hifiCommunicator = new HiFiCommunicator({ initialHiFiAudioAPIData });
 
   // Set the Input Audio Media Stream to the `MediaStream` we created above. We'll fill it up with data below.
   await hifiCommunicator.setInputAudioMediaStream(inputAudioMediaStream);
@@ -1161,11 +1169,11 @@ Instead, it's a \`${audioFileExtension}\``);
   // Connect to our High Fidelity Space.
   let connectResponse;
   try {
-      connectResponse = await hifiCommunicator.connectToHiFiAudioAPIServer(hiFiJWT);
+    connectResponse = await hifiCommunicator.connectToHiFiAudioAPIServer(hiFiJWT);
   } catch (e) {
-      console.error(`Call to \`connectToHiFiAudioAPIServer()\` failed! Error:\
+    console.error(`Call to \`connectToHiFiAudioAPIServer()\` failed! Error:\
 ${JSON.stringify(e)}`);
-      return;
+    return;
   }
 
   // Set up the `preciseInterval` used to regularly update the `MediaStream` we're sending to the Server.
@@ -1173,24 +1181,21 @@ ${JSON.stringify(e)}`);
 
   console.log(`DJ Bot connected. Let's DANCE!`);
   // return hifiCommunicator;
-
 }
 
 
 async function stopAudioBox(hiFiJWT) {
-  const
-      // Set up the HiFiCommunicator used to communicate with the Spatial Audio API.
-      hifiCommunicator = new HiFiCommunicator();
+  const hifiCommunicator = new HiFiCommunicator();
 
   // Connect to our High Fidelity Space.
   let connectResponse;
   try {
-      connectResponse = await hifiCommunicator.connectToHiFiAudioAPIServer(hiFiJWT);
-      await hifiCommunicator.disconnectFromHiFiAudioAPIServer();
+    connectResponse = await hifiCommunicator.connectToHiFiAudioAPIServer(hiFiJWT);
+    await hifiCommunicator.disconnectFromHiFiAudioAPIServer();
   } catch (e) {
-      console.error(`Call to \`connectToHiFiAudioAPIServer()\` failed! Error:\
+    console.error(`Call to \`connectToHiFiAudioAPIServer()\` failed! Error:\
 ${JSON.stringify(e)}`);
-      return;
+    return;
   }
 
 }
