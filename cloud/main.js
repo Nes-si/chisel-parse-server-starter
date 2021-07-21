@@ -1049,14 +1049,13 @@ const generateAudioJWT = async(userID, vulcanSpaceId, spaceName) => {
 
 
 Parse.Cloud.define("startAudioBox", async (request) => {
-  const { vulcanSpaceId, spaceName, objectId, audioFileName, hiFiGain, x, y } = request.params;
+  const { vulcanSpaceId, spaceName, objectId, audioFileName, hiFiGain, position } = request.params;
   // Generate the JWT used to connect to our High Fidelity Space.
   let hiFiJWT = await generateAudioJWT(objectId, vulcanSpaceId, spaceName);
   if (!hiFiJWT) {
     return;
   }
-  await startAudioBox(`./music/${audioFileName}.mp3`, { x, y, z: 0 }, hiFiGain, hiFiJWT);
-  // return hifiCommunicator;
+  await startAudioBox(`./music/${audioFileName}.mp3`, position, hiFiGain, hiFiJWT);
 });
 
 Parse.Cloud.define("stopAudioBox", async (request) => {
@@ -1145,27 +1144,6 @@ Instead, it's a \`${audioFileExtension}\``);
   // Set the Input Audio Media Stream to the `MediaStream` we created above. We'll fill it up with data below.
   await hifiCommunicator.setInputAudioMediaStream(inputAudioMediaStream);
 
-  // `sampleNumber` defines where we are in the decoded audio stream from above. `0` means "we're at the beginning of the audio file".
-  let sampleNumber = 0;
-  // Called once every `TICK_INTERVAL_MS` milliseconds.
-  let tick = () => {
-      // This `for()` loop fills up `currentSamples` with the right amount of raw audio data grabbed from the correct position
-      // in the decoded audio file.
-      for (let frameNumber = 0; frameNumber < SAMPLES_PER_TICK; frameNumber++, sampleNumber++) {
-          for (let channelNumber = 0; channelNumber < numberOfChannels; channelNumber++) {
-              currentSamples[frameNumber * numberOfChannels + channelNumber] = convertedAudioBuffer[sampleNumber * numberOfChannels + channelNumber] || 0;
-          }
-      }
-
-      // This is the function that actually modifies the `MediaStream` we're sending to the Server.
-      source.onData(currentAudioData);
-
-      // Check if we're at the end of our audio file. If so, reset the `sampleNumber` so that we loop.
-      if (sampleNumber > length) {
-          sampleNumber = 0;
-      }
-  }
-
   // Connect to our High Fidelity Space.
   let connectResponse;
   try {
@@ -1174,6 +1152,28 @@ Instead, it's a \`${audioFileExtension}\``);
     console.error(`Call to \`connectToHiFiAudioAPIServer()\` failed! Error:\
 ${JSON.stringify(e)}`);
     return;
+  }
+
+  // `sample` defines where we are in the decoded audio stream from above. `0` means "we're at the beginning of the audio file".
+  let sample = 0;
+  // Called once every `TICK_INTERVAL_MS` milliseconds.
+  let tick = () => {
+    // This `for()` loop fills up `currentSamples` with the right amount of raw audio data grabbed from the correct position
+    // in the decoded audio file.
+    for (let frame = 0; frame < SAMPLES_PER_TICK; frame++, sample++) {
+      for (let channel = 0; channel < numberOfChannels; channel++) {
+        currentSamples[frame * numberOfChannels + channel] =
+          convertedAudioBuffer[sample * numberOfChannels + channel] || 0;
+      }
+    }
+
+    // This is the function that actually modifies the `MediaStream` we're sending to the Server.
+    source.onData(currentAudioData);
+
+    // Check if we're at the end of our audio file. If so, reset the `sample` so that we loop.
+    if (sample > length) {
+      sample = 0;
+    }
   }
 
   // Set up the `preciseInterval` used to regularly update the `MediaStream` we're sending to the Server.
